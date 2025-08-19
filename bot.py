@@ -1,10 +1,10 @@
 import os
 import json
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 TOKEN = os.environ.get("BOT_TOKEN")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASS", "12345")  # پسورد پیشفرض 12345
 DB_FILE = "media_db.json"
 
 # بارگذاری دیتابیس
@@ -21,21 +21,19 @@ def save_db():
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(media_db, f, ensure_ascii=False, indent=2)
 
-def is_admin(user_id: int) -> bool:
-    return ADMIN_ID != 0 and user_id == ADMIN_ID
-
 # ذخیره فایل
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not is_admin(user_id):
-        await update.message.reply_text("⛔ شما ادمین نیستید.")
-        return
-    
-    if not context.args:
-        await update.message.reply_text("باید شماره فایل بدی. مثال: /save 1 همراه فایل")
+    if len(context.args) < 2:
+        await update.message.reply_text("❌ دستور درست نیست.\nمثال:\n/save <password> <number>")
         return
 
-    media_id = context.args[0]
+    password = context.args[0]
+    media_id = context.args[1]
+
+    if password != ADMIN_PASSWORD:
+        await update.message.reply_text("⛔ پسورد اشتباهه.")
+        return
+
     file_id, file_type = None, None
 
     if update.message.animation:
@@ -60,7 +58,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # گرفتن فایل
 async def get_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("مثال: /get 1")
+        await update.message.reply_text("مثال:\n/get 1")
         return
 
     media_id = context.args[0]
